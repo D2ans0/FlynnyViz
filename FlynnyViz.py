@@ -1,6 +1,6 @@
 #! python3
 
-from os import system, path
+from os import system, path, truncate
 import argparse
 import numpy as np
 from time import time, sleep
@@ -48,7 +48,7 @@ secret = args.secret
 if secret: print("LS4tLSAtLS0gLi4tIC4tLS0tLiAuLS4gLiAvIC4tIC8gLS4uLiAtLS0gLSAtIC0tLSAtLQ=="), exit(0)
 
 ### main variables ###
-volume_2, volume_3, iterator, fps, uncappedFPS = 0, 0, 0, 0, 0
+volume_2, volume_3, iterator, fps, frame_time = 0, 0, 0, 0, 0
 framerate_cap = 1/framerate_cap #calculate nominal frame time
 
 font_pos = (5, 15)
@@ -109,15 +109,14 @@ def apply_alpha(image_name, a = np.array([]), alphaOnly=False):
 			return a
 if stats:
 	def info_overlay(image_name, x, y, scale, face, color):
-		cv2.putText(image_name,f"fps:{fps} Real: {uncappedFPS}", (x,y), face, scale, color)
+		cv2.putText(image_name,f"fps: {fps} Frame time (ms): {round(frame_time*100, 2)}", (x,y), face, scale, color)
 		cv2.putText(image_name,f"Shift: {shift} (Base: {iterator})", (x,y*2), face, scale, color)
 		cv2.putText(image_name,f"Volume: Real: {int(volume_real)} Smoothed: {int(volume_smoothed)}", (x,y*3), face, scale, color)
 		# print general info
-		print("{}  \nfps: {}  \t(real: {})  \t\t|\nShift: {}  	Base: {}  \t\t|\nVolume: Real: {} \tSmoothed: {} \t|".format(window_title, fps, uncappedFPS, shift, iterator,int(volume_real), int(volume_smoothed)))
+		print("{}  \nfps: {}  \t\t(Frame time: {})  \t|\nShift: {}  \t\tBase: {}  \t\t|\nVolume: Real: {} \tSmoothed: {} \t\t|".format(window_title, fps, round(frame_time*100, 2), shift, iterator,int(volume_real), int(volume_smoothed)))
 		system("echo \x1B[5A")
-else:
-	def info_overlay(*_):
-		return
+else: 
+	def info_overlay(*_): return
 
 img_source = open_image(image_path) #read image
 
@@ -163,11 +162,9 @@ while cv2.getWindowProperty(window_title, cv2.WND_PROP_VISIBLE):	# mainloop, run
 	cv2.imshow(window_title, img_out) #redraw main window
 	cv2.waitKey(1) #wait 1ms (required by opencv)
 
-
-
 	# fps capping
-	sleep_time = (framerate_cap - fps_calc(startTime0, mode="time"))
-	uncappedFPS = fps_calc(startTime0, mode="rate")
+	frame_time = fps_calc(startTime0, mode="time")
+	sleep_time = (framerate_cap - frame_time)
 	if sleep_time >= 0:
 		sleep(sleep_time)
 	fps = fps_calc(startTime0, mode="rate")
