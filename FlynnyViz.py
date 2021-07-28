@@ -9,13 +9,16 @@ from pyaudio import PyAudio, paInt16
 
 ### flags ###
 # add args
-args_setup = argparse.ArgumentParser(description="Hue shift image based off of sound playing on default input device", epilog="Inspired by that RGB Flynn gif on the Echocord\nMade by D2#0621")
+args_setup = argparse.ArgumentParser(description="Hue shift images based off of sound playing on your default input device",
+	epilog="Inspired by that RGB Flynn gif on the Echocord\nMade by D2#0621",
+	formatter_class=argparse.RawDescriptionHelpFormatter)
 args_audio = args_setup.add_argument_group()
 args_misc = args_setup.add_argument_group()
 
 args_setup.add_argument("-I", "--image", type=str, metavar='', required=False, default=r"Flynn.png", help="String with path to image")
 args_setup.add_argument("-T", "--title", type=str, metavar='', default="FlynnyViz", help="Name of the window (only accepts ASCII characters)")
 args_setup.add_argument("-F","--fps_cap", type=int, metavar='', default=45, help="Change default framerate cap")
+args_setup.add_argument("-s","--scale", type=int, metavar='', default=100, help="Change image scale")
 
 args_audio.add_argument("-D", "--dampening", type=int, metavar='', default=16, help="higher = less sensitivity to audio")
 args_audio.add_argument("-t", "--timing", type=int, metavar='', default='6', help="Takes one capture every Nth frame and every N*2th frame to mix together")
@@ -26,6 +29,7 @@ args_misc.add_argument("-S", "--stats", action="store_true", help="Displays FPS,
 args_misc.add_argument("--shift", type=int, metavar='', default=15, help="Constant hue shift, helps with some problematic images")
 if path.splitext(__file__)[1] != ".pyw":
 	args_misc.add_argument("--noclear", action="store_true", help="Do not clear console on window close (may help with debugging)")
+args_misc.add_argument("--only_audio", action="store_false", help="Only shift based off of audio")
 args_misc.add_argument("--secret", action="store_true", help=argparse.SUPPRESS)
 
 # apply args
@@ -33,6 +37,7 @@ args = args_setup.parse_args()
 window_title = args.title
 image_path = args.image
 framerate_cap = args.fps_cap
+scale = args.scale
 
 const_shift = args.shift
 dampening = args.dampening
@@ -42,10 +47,12 @@ smoothing_weight_x1 = args.weightx1
 smoothing_weight_x2 = args.weightx2
 
 stats = args.stats
+disable_base_shift = args.only_audio
 
 secret = args.secret
 #nothing to see here
 if secret: print("LS4tLSAtLS0gLi4tIC4tLS0tLiAuLS4gLiAvIC4tIC8gLS4uLiAtLS0gLSAtIC0tLSAtLQ=="), exit(0)
+
 
 ### main variables ###
 volume_2, volume_3, iterator, fps, frame_time = 0, 0, 0, 0, 0
@@ -68,8 +75,8 @@ stream = PyAudio().open(
 
 
 ### main functions ###
-def open_image(image_name):	#image to numpy array, allows the use unicode characters in path
-	image_stream = open(image_path, "rb")
+def open_image(image):	#image to numpy array, allows the use unicode characters in path
+	image_stream = open(image, "rb")
 	image_array = bytearray(image_stream.read())
 	image_NParray = np.asarray(image_array, dtype=np.uint8)
 	image_output = cv2.imdecode(image_NParray, -1)
@@ -94,32 +101,39 @@ def audio_sens(audio_stream):
 	data_merged = (np.max(data)-np.min(data))/max_value
 	return data_merged
 
-def apply_alpha(image_name, a = np.array([]), alphaOnly=False):
+def scaling(image, percentage):
+	percentage = percentage / 100
+	target_size = (int(image.shape[1]*percentage), int(image.shape[0]*percentage))
+	return cv2.resize(image, target_size)
+
+def apply_alpha(image, a = np.array([]), alphaOnly=False):
 	if a.any() != 0:
-		b,g,r = image_name[:,:,0], image_name[:,:,1], image_name[:,:,2] # split image into separate channels
+		b,g,r = image[:,:,0], image[:,:,1], image[:,:,2] # split image into separate channels
 		b,g,r = np.bitwise_and(a, b), np.bitwise_and(a, g), np.bitwise_and(a, r) # combine alpha and color channels, later merge
 		return np.dstack([b,g,r,a])
 	else:
 		if not alphaOnly:
-			b,g,r,a = image_name[:,:,0], image_name[:,:,1], image_name[:,:,2], image_name[:,:,3]
+			b,g,r,a = image[:,:,0], image[:,:,1], image[:,:,2], image[:,:,3]
 			b,g,r = np.bitwise_and(a, b), np.bitwise_and(a, g), np.bitwise_and(a, r)
 			return np.dstack([b,g,r,a])
 		else:
-			a = image_name[:,:,3]
+			a = image[:,:,3]
 			return a
+
 if stats:
-	def info_overlay(image_name, x, y, scale, face, color):
-		cv2.putText(image_name,f"fps: {fps} Frame time (ms): {round(frame_time*100, 2)}", (x,y), face, scale, color)
-		cv2.putText(image_name,f"Shift: {shift} (Base: {iterator})", (x,y*2), face, scale, color)
-		cv2.putText(image_name,f"Volume: Real: {int(volume_real)} Smoothed: {int(volume_smoothed)}", (x,y*3), face, scale, color)
+	def info_overlay(image, x, y, scale, face, color):
+		cv2.putText(image,f"fps: {fps} Frame time (ms): {round(frame_time*100, 2)}", (x,y), face, scale, color)
+		cv2.putText(image,f"Shift: {shift} (Base: {iterator})", (x,y*2), face, scale, color)
+		cv2.putText(image,f"Volume: Real: {int(volume_real)} Smoothed: {int(volume_smoothed)}", (x,y*3), face, scale, color)
 		# print general info
 		print("{}  \nfps: {}  \t\t(Frame time: {})  \t|\nShift: {}  \t\tBase: {}  \t\t|\nVolume: Real: {} \tSmoothed: {} \t\t|".format(window_title, fps, round(frame_time*100, 2), shift, iterator,int(volume_real), int(volume_smoothed)))
 		system("echo \x1B[5A")
 else: 
 	def info_overlay(*_): return
 
+### main part ###
 img_source = open_image(image_path) #read image
-
+img_source = scaling(img_source, scale)
 # check if image has alpha
 if img_source.shape[2] == 4:
 	alpha = apply_alpha(img_source, alphaOnly=True)
@@ -142,7 +156,7 @@ while cv2.getWindowProperty(window_title, cv2.WND_PROP_VISIBLE):	# mainloop, run
 	volume_smoothed = (volume_real + volume_2 + volume_3) / (1 + smoothing_weight_x1 + smoothing_weight_x2) #average out loudness
 
 	# calculate amount of hue shift and modify the channel
-	shift = const_shift + int(volume_smoothed - iterator) % 180
+	shift = const_shift + int(volume_smoothed - iterator*disable_base_shift) % 180
 	h_shifted = shift - h
 
 	# apply hue shift and convert back to BGR
