@@ -25,4 +25,5 @@ Smoothing
 ### TODO
 - Provide a packaged version of the script, for both Windows and Linux
 - Fix some weird display issues with openCV (maybe even switch to a different library)
+- Add UI for image selection, live changes, etc.
 - clean up the code ~~(yeah, no)~~
