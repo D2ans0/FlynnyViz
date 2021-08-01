@@ -1,4 +1,6 @@
-/.vscode
-/CarlBloody.png
-/FlynnyViz.py - Shortcut.lnk
-/TJsmall.png
+/.*
+/*.lnk
+/__pycache__
+*.png
+!*Flynn.png
+*.jpg
