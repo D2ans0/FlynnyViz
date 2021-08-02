@@ -25,7 +25,7 @@ Smoothing
 - --noclear           Do not clear console on window close
 
 ### TODO
-- Provide a packaged version of the script, for both Windows and Linux
+- Provide a packaged version of the script, for both ~~Windows~~ and Linux
 - ~~Move away from PyAudio~~ Now supports both PyAudio and Sounddevice
 - Implement input device selection
 - Fix some weird display issues with openCV (maybe even switch to a different library)

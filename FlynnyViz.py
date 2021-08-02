@@ -51,10 +51,6 @@ def misc_args(group):
 		help="Displays FPS, real frame time, hue-shift and volume level")
 	group.add_argument("--shift", type=int, metavar='', default=15,
 		help="Constant hue shift, helps with some problematic images")
-	#if os.path.splitext(__file__)[1] != ".pyw":
-	group.add_argument("--noclear", action="store_true",
-		help="Do not clear console on window close (may help with debugging)")
-	#
 	group.add_argument("--only-audio", action="store_false",
 		help="Only shift based off of audio")
 	group.add_argument("--secret", action="store_true", help=argparse.SUPPRESS)
@@ -84,22 +80,21 @@ def fps_calc(time_count_start, mode=""):	#1st var = fps, 2nd var = frame time
 def audio_stream():
 	global stream, sd, audio_sens
 	try:
-		import sounddevice as sd
-		stream = sd.InputStream(dtype=np.int16 , channels=1, samplerate=4000, blocksize=64)
-		stream.start()
-		def audio_sens(audio_stream):
-			data = audio_stream.read(64)[0]
+		from pyaudio import PyAudio, paInt16
+		stream = PyAudio().open(format=paInt16, channels=1, rate=4000, input=1, frames_per_buffer=64)
+		def audio_sens(audio_stream):	
+			data = np.frombuffer(audio_stream.read(64),dtype=np.int16)
 			data_merged = (np.max(data) - np.min(data))*1000/max_value
 			return data_merged
 	except ImportError:
 		try:
-			from pyaudio import PyAudio, paInt16
-			stream = PyAudio().open(format=paInt16, channels=1, rate=4000, input=1, frames_per_buffer=64)
-			def audio_sens(audio_stream):	
-				data = np.frombuffer(audio_stream.read(64),dtype=np.int16)
+			import sounddevice as sd
+			stream = sd.InputStream(dtype=np.int16 , channels=1, samplerate=4000, blocksize=64)
+			stream.start()
+			def audio_sens(audio_stream):
+				data = audio_stream.read(64)[0]
 				data_merged = (np.max(data) - np.min(data))*1000/max_value
 				return data_merged
-
 		except ImportError:
 			sys.stdout.write(
 				"""Neither pyaudio nor sounddevice were detected, try installing the latter with:
@@ -136,11 +131,10 @@ def info_overlay(image, x, y, scale, face, color, info):
 	cv2.putText(image, f"Shift: {info[2]} (Base: {info[3]})", (x,y*2), face, scale, color)
 	cv2.putText(image, f"Volume: Real: {info[4]:.0f} Smoothed: {info[5]:.0f}", (x,y*3), face, scale, color)
 	# print general info
-	sys.stdout.write(f"{args.title}  \nfps: {info[0]}  \t\t(Frame time: {info[1]:.2f})  \t|\nShift: {info[2]}  \t\tBase: {info[3]}  \t\t|\nVolume: Real: {info[4]:.0f} \tSmoothed: {info[5]:.0f} \t\t|\n\x1B[4A")
+	#sys.stdout.write(f"{args.title}  \nfps: {info[0]}  \t\t(Frame time: {info[1]:.2f})  \t|\nShift: {info[2]}  \t\tBase: {info[3]}  \t\t|\nVolume: Real: {info[4]:.0f} \tSmoothed: {info[5]:.0f} \t\t|\n\x1B[4A")
 
 def mainloop():
 	global iterator, volume_2, volume_3, info
-	cv2.namedWindow(args.title) #init main window
 	while cv2.getWindowProperty(args.title, cv2.WND_PROP_VISIBLE):	# mainloop, runs as long as the main window running
 		startTime0 = time()
 		iterator = (iterator + 1) % 180
@@ -158,8 +152,8 @@ def mainloop():
 		# apply hue shift and convert back to BGR
 		if not args.mask: imgHSV = np.dstack([h_shifted,s,v])
 		else:
-			h_shifted = np.bitwise_or(np.invert(mask), h_shifted),
-			imgHSV = np.dstack([np.bitwise_and(masked, h_shifted),s,v])
+			h_shifted = np.bitwise_or(np.invert(mask), h_shifted)
+			imgHSV = np.dstack([np.bitwise_and(masked, h_shifted), s, v])
 		img_HSV2BGR = cv2.cvtColor(imgHSV, cv2.COLOR_HSV2BGR)
 
 		# check if there's an alpha channel and either apply it or display as is
@@ -183,11 +177,10 @@ def mainloop():
 		fps = fps_calc(startTime0, mode="rate")
 		info = (fps, frame_time, shift, iterator, volume_real, volume_smoothed)
 
-	if not args.noclear: os.system("cls")
-
 ### root ###
 if __name__ == "__main__":
 	args = argument_parse()
+	cv2.namedWindow(args.title) #init main window
 	audio_stream()
 	if args.list_devices: print('Available devices:\n', sd.query_devices()), exit()
 	#nothing to see here
@@ -221,4 +214,6 @@ if __name__ == "__main__":
 		if args.scale != 100: mask = scaling(mask, args.scale)
 		if mask.shape[2] >= 3: mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
 		masked = np.bitwise_or(mask, h)
+	#print(masked.shape)
+	#print(imgHSV.shape)
 	mainloop()
