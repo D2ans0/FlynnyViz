@@ -40,11 +40,8 @@ def main_args(group):
 	group.add_argument("--mask", type=str, metavar='',
 		default=None, help="Apply grayscale mask image")
 def audio_args(group):
-	group.add_argument("-L", "--list-devices", action="store_true")
 	group.add_argument("-D", "--dampening", type=float, metavar='',
 		default=1.5, help="higher = less sensitivity to audio")
-	group.add_argument("-B", "--boost", type=int, metavar='',
-		default=1, help="increase sensitivity")
 	group.add_argument("--smoothing", type=int, metavar='',
 		default='12', help="Takes one capture every Nth frame and every N*2th frame to mix together")
 	group.add_argument("-x1", "--weightx1", type=float, metavar='',
@@ -54,10 +51,10 @@ def audio_args(group):
 def misc_args(group):
 	group.add_argument("-S", "--stats", action="store_true",
 		help="Displays FPS, real frame time, hue-shift and volume level")
-	group.add_argument("--shift", type=int, metavar='', default=15,
-		help="Constant hue shift, helps with some problematic images")
 	group.add_argument("--only-audio", action="store_false",
 		help="Only shift based off of audio")
+	group.add_argument("--shift", type=int, metavar='', default=15,
+		help="Constant hue shift, helps with some problematic images")
 	group.add_argument("--secret", action="store_true", help=argparse.SUPPRESS)
 
 #utils
