@@ -3,6 +3,8 @@ In short, this script takes an input images and hue shifts it based off the curr
 
 ![RGB Flynn](examples/Demo.gif)
 
+*Character from [Echo](https://echoproject.itch.io/echo) by [EchoProject](https://www.patreon.com/EchoGame), check them out if you haven't already!*
+
 ## Command Line Options
 - -I, --image        Select image
 - -T, --title        Allows you to change the name of the window (limited to ASCII)
