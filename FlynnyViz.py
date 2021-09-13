@@ -54,6 +54,7 @@ def argument_parse(args=sys.argv[1:]):
 
 	return parser.parse_args(args)
 
+
 # utils
 def timer(time_count_start, mode=""):
 	"""time_start - start time \n mode - time/rate/none(both)"""
@@ -73,14 +74,14 @@ def timer(time_count_start, mode=""):
 
 	pass
 
-class Flynny_image:
-	def __init__(self):
-		self.info_x = 5
-		self.info_y = 15
-		self.info_scale = 0.4
-		self.info_color = (255, 255, 255)
 
-	@staticmethod		
+class Flynny_image:
+	info_x = 5
+	info_y = 15
+	info_scale = 0.4
+	info_color = (255, 255, 255)
+
+	@staticmethod
 	def open_image(img_source_input):	# image to numpy array, allows for unicode characters in path
 		with open(img_source_input, "rb") as image_stream:
 			image_array = bytearray(image_stream.read())
@@ -100,7 +101,7 @@ class Flynny_image:
 				b,g,r,_ = image[:,:,0], image[:,:,1], image[:,:,2], image[:,:,3] # split image into separate channels
 				b,g,r = np.bitwise_and(a, b), np.bitwise_and(a, g), np.bitwise_and(a, r) # combine alpha and color channels, later merge
 				return np.dstack([b,g,r,a])
-			else: 
+			else:
 				b,g,r = image[:,:,0], image[:,:,1], image[:,:,2] # split image into separate channels
 				b,g,r = np.bitwise_and(a, b), np.bitwise_and(a, g), np.bitwise_and(a, r) # combine alpha and color channels, later merge
 				return np.dstack([b,g,r,a])
@@ -113,6 +114,7 @@ class Flynny_image:
 				a = image[:,:,3]
 				return a
 
+	@staticmethod
 	def info_overlay(self, image, info):
 		info = "\n".join((f"fps: {info['fps']} Frame time (ms): {(info['time']*100):.1f}",
 			f"Shift: {info['dyn_shift']} (Base: {info['base_shift']})",
@@ -127,19 +129,17 @@ class Flynny_image:
 
 
 class Flynny_audio:
-	def __init__(self):
-		self.dampen = 2**args.dampening
-
+	@staticmethod
 	def get_mic():
 		def_speaker = sc.default_speaker()
 		def_speaker = str(def_speaker)
 		def_speaker = def_speaker[def_speaker.find("("):def_speaker.find(")") + 1]
 		mic = sc.get_microphone(def_speaker, include_loopback=True)
 		return mic
-
-	def audio_sens(self, audio_stream):
+	@staticmethod
+	def audio_sens(audio_stream, dampening):
 		data = audio_stream.record(numframes=16)
-		data_merged = (np.max(data) - np.min(data)) * 1000 / self.dampen
+		data_merged = (np.max(data) - np.min(data)) * 1000 / dampening
 		return data_merged
 
 
@@ -148,14 +148,12 @@ if __name__ == "__main__":
 		# var init
 		fps_cap = 1 / args.fps_cap
 		frame_time, info, iterator, volume_2, volume_3 = time(), 0, 0, 0, 0
-		audio = Flynny_audio()
-		image = Flynny_image()
 
 		# open img and scale/apply alpha when needed
-		img_src = image.open_image(args.image)
+		img_src = Flynny_image.open_image(args.image)
 
-		if args.scale != 100: img_src = image.scaling(img_src, args.scale)
-		if img_src.shape[2] == 4: alpha = image.apply_alpha(img_src, retrieve_alpha=True)
+		if args.scale != 100: img_src = Flynny_image.scaling(img_src, args.scale)
+		if img_src.shape[2] == 4: alpha = Flynny_image.apply_alpha(img_src, retrieve_alpha=True)
 		else: alpha = np.array([])
 
 		# BGR -> HSV and split channels
@@ -164,15 +162,15 @@ if __name__ == "__main__":
 
 		# area masking
 		if args.mask:
-			mask = image.open_image(args.mask)
-			if args.scale != 100: mask = image.scaling(mask, args.scale)
+			mask = Flynny_image.open_image(args.mask)
+			if args.scale != 100: mask = Flynny_image.scaling(mask, args.scale)
 			if mask.shape[2] >= 3: mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
 			masked = np.bitwise_or(mask, h)
 
 		while cv2.getWindowProperty(args.title, cv2.WND_PROP_VISIBLE):  # run till main WND is closed
 			timerStart = time()
 			iterator = (iterator + 1) % 180
-			volume_real = audio.audio_sens(audio_stream)
+			volume_real = Flynny_audio.audio_sens(audio_stream, args.dampening)
 
 			# smoothing
 			if not (iterator % args.smoothing): volume_2 = volume_real * args.weightx1
@@ -192,10 +190,10 @@ if __name__ == "__main__":
 
 			# check if there's an alpha channel and either apply it or display as is
 			if alpha.any() is False: img_out = img_HSV2BGR
-			else: img_out = image.apply_alpha(img_HSV2BGR, alpha)
+			else: img_out = Flynny_image.apply_alpha(img_HSV2BGR, alpha)
 
 			# stats overlay
-			if args.stats and info: image.info_overlay(img_out, info)
+			if args.stats and info: Flynny_image.info_overlay(img_out, info)
 
 			cv2.imshow(args.title, img_out)
 			cv2.waitKey(1)
@@ -228,4 +226,4 @@ if __name__ == "__main__":
 		with open('FlynnyViz.log', 'a') as log:
 			log.write(f"{strftime('%d/%m/%Y %H:%M%S')} {repr(err)}")
 		with mic.recorder(samplerate=1000, blocksize=16) as stream:
-			main()
+			main(stream)
