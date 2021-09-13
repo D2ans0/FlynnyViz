@@ -1,1 +1,0 @@
-13/09/2021 11:1034 TypeError("audio_sens() missing 2 required positional arguments: 'audio_stream' and 'dampening'")13/09/2021 11:1142 AttributeError("'Namespace' object has no attribute 'dampen'")13/09/2021 11:1211 TypeError("audio_sens() missing 1 required positional argument: 'dampening'")
