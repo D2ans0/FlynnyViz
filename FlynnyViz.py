@@ -224,6 +224,6 @@ if __name__ == "__main__":
 
 	except Exception as err:
 		with open('FlynnyViz.log', 'a') as log:
-			log.write(f"{strftime('%d/%m/%Y %H:%M%S\n')} {repr(err)}")
+			log.write(f"{strftime('%d/%m/%Y %H:%M%S')} {repr(err)}\n")
 		with mic.recorder(samplerate=1000, blocksize=16) as stream:
 			main(stream)
