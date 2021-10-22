@@ -189,7 +189,7 @@ if __name__ == "__main__":
 			img_HSV2BGR = cv2.cvtColor(imgHSV, cv2.COLOR_HSV2BGR)
 
 			# check if there's an alpha channel and either apply it or display as is
-			if alpha.any() is False: img_out = img_HSV2BGR
+			if alpha.size == 0: img_out = img_HSV2BGR
 			else: img_out = Flynny_image.apply_alpha(img_HSV2BGR, alpha)
 
 			# stats overlay
