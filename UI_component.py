@@ -3,17 +3,13 @@ from tkinter import filedialog
 import ttkbootstrap as ttkB
 
 
-title = "test"
-srcimg = "img/fries.png"
-
-
 class UI:
     filename = None
     srcimg = None
 
-    def __init__(self, command="", arguments="", need_restart="", queue=None):
-        self.need_restart = need_restart
-        self.queue = queue
+    def __init__(self, command="", arguments="", queue=None):
+        self.shift = queue.shift
+        self.img_name = queue.img_name
         self.arguments = arguments
         self.UI(command=command)
 
@@ -31,8 +27,7 @@ class UI:
         )
 
         if self.filename != "":
-            self.srcimg = self.filename
-            self.need_restart = True
+            self.img_name.put(self.filename)
 
     def UI(self, command=exit):
         window = tk.Tk()
@@ -47,7 +42,7 @@ class UI:
             to=180,
             length=300,
             orient=tk.HORIZONTAL,
-            command=self.queue.put
+            command=self.shift.put
         )
 
         base_shift.pack(pady=10)

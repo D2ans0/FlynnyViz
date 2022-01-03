@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import traceback
 from time import time, sleep, strftime
 from queue import Empty
 
@@ -142,7 +143,8 @@ class Flynny_audio:
         return data_merged
 
 
-def main(args, need_restart, queue):
+def main(args, queue):
+    need_restart = 0
     saved_args = args
     cv2.namedWindow(args.title, flags=(cv2.WINDOW_GUI_NORMAL + cv2.WINDOW_AUTOSIZE))
     mic = Flynny_audio.get_mic()
@@ -173,6 +175,7 @@ def main(args, need_restart, queue):
         if mask.shape[2] >= 3:
             mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
         masked = np.bitwise_or(mask, h)
+
     with mic.recorder(samplerate=1000, blocksize=16) as stream:
         while cv2.getWindowProperty(args.title, cv2.WND_PROP_VISIBLE):
             # run till main WND is closed
@@ -185,9 +188,9 @@ def main(args, need_restart, queue):
                 volume_2 = volume_real * args.weightx1
             if not (i % (args.smoothing * 2)):
                 volume_3 = volume_real * args.weightx2
+            # average out loudness
             volume_smoothed = (volume_real + volume_2 + volume_3) / (
-                1 + args.weightx1 + args.weightx2
-            )  # average out loudness
+                1 + args.weightx1 + args.weightx2)
 
             # calculate amount of hue shift and modify the channel
             shift = int(args.shift + volume_smoothed + i * args.only_audio) % 180
@@ -230,15 +233,26 @@ def main(args, need_restart, queue):
             }
 
             try:
-                args.shift = float(queue.get(block=False))
+                args.shift = float(queue.shift.get(block=False))
                 print(shift)
+                # print(image)
+            except Empty:
+                # print(traceback.format_exc())
+                pass
+
+            try:
+                args.image = str(queue.img_name.get(block=False))
+                need_restart = 1
+                print(args.image)
+                print(str(queue.img_name.get(block=False)))
             except Empty:
                 pass
 
             if need_restart:
                 break
         if need_restart:
-            main(saved_args, need_restart)
+            print('Restarted!')
+            main(saved_args, queue)
         else:
             os._exit(1)
 
@@ -347,4 +361,4 @@ if __name__ == "__main__":
         args_misc.add_argument("--secret", action="store_true", help=argparse.SUPPRESS)
         return parser.parse_args(args)
 
-    main(argument_parse(), 0)
+    main(argument_parse(), 0, 0)

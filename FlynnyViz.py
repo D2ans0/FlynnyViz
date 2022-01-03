@@ -120,14 +120,18 @@ if __name__ == "__main__":
 
         sys.stdout.write(dontlook("img/Flynn.png")), exit(0)
 
-    need_restart = 0
-    queue = Queue(maxsize=1)
+    # create queue
+
+    class queue:
+        shift = Queue(maxsize=1)
+        img_name = Queue()
+
     # queue = Queue()
 
     try:
         print("Creating main thread...")
         main = threading.Thread(
-            target=Base_component.main, args=[arguments, need_restart, queue]
+            target=Base_component.main, args=[arguments, queue]
         )
         print("Starting main thread")
         main.start()
@@ -140,7 +144,7 @@ if __name__ == "__main__":
     try:
         print("Creating UI thread...")
         UI = threading.Thread(
-            target=UI_component.UI, args=[FlynnyQuit, arguments, need_restart, queue]
+            target=UI_component.UI, args=[FlynnyQuit, arguments, queue]
         )
         print("Starting UI thread")
         UI.start()
