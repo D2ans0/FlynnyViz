@@ -124,9 +124,9 @@ if __name__ == "__main__":
 
     class queue:
         shift = Queue(maxsize=1)
-        img_name = Queue()
-
-    # queue = Queue()
+        img_name = Queue(maxsize=1)
+        stats = Queue(maxsize=1)
+    print(locals())
 
     try:
         print("Creating main thread...")

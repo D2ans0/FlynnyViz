@@ -8,6 +8,7 @@ class UI:
     srcimg = None
 
     def __init__(self, command="", arguments="", queue=None):
+        # queue_local = queue
         self.shift = queue.shift
         self.img_name = queue.img_name
         self.arguments = arguments

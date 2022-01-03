@@ -231,22 +231,23 @@ def main(args, queue):
                 "vol_smoothed": volume_smoothed,
                 "mic": micname,
             }
-
-            try:
+            if not queue.shift.empty():
                 args.shift = float(queue.shift.get(block=False))
-                print(shift)
-                # print(image)
-            except Empty:
-                # print(traceback.format_exc())
-                pass
 
-            try:
+            if not queue.img_name.empty():
                 args.image = str(queue.img_name.get(block=False))
                 need_restart = 1
-                print(args.image)
-                print(str(queue.img_name.get(block=False)))
-            except Empty:
-                pass
+
+            # if not queue.stats.empty():
+            #     args.shift = float(queue.stats.get(block=False))
+            # print(vars(queue))
+            # try:
+            #     args.image = str(queue.img_name.get(block=False))
+            #     need_restart = 1
+            #     print(args.image)
+            #     print(str(queue.img_name.get(block=False)))
+            # except Empty:
+            #     pass
 
             if need_restart:
                 break
