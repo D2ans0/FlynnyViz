@@ -228,18 +228,19 @@ def main(args, need_restart, queue):
                 "vol_smoothed": volume_smoothed,
                 "mic": micname,
             }
+
             try:
                 args.shift = float(queue.get(block=False))
                 print(shift)
             except Empty:
                 pass
 
-            # if need_restart:
-            #     break
-        # if need_restart:
-        #     main(saved_args, need_restart)
-        # else:
-        #     os._exit()
+            if need_restart:
+                break
+        if need_restart:
+            main(saved_args, need_restart)
+        else:
+            os._exit(1)
 
 
 if __name__ == "__main__":
